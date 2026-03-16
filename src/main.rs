@@ -1,14 +1,14 @@
 
-static I: i32 = 1;
+//static I: i32 = 1;
 
 fn main() {
-    println!("{}", I);
+//    println!("{}", I);
 
     // let j = 2;
     // test(j);
 
-    // let heap = Box::new(3);
-    // println!("{}", heap);
+    let heap = Box::new(3);
+     println!("{}", heap);
 
 }
 

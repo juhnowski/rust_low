@@ -6,7 +6,16 @@ cargo build
 cargo asm test1::main
 ```
 
-# Windows
+# Статические переменные
+```rust
+static I: i32 = 1;
+
+fn main() {
+    println!("{}", I);
+}
+```
+
+## Windows
 ```nasm
 .section .text,"xr",one_only,test1::main,unique,4
 	.globl	test1::main
@@ -33,7 +42,7 @@ test1::main:
 	ret
 ```
 
-# Linux
+## Linux
 ```asm
 .section .text.test1::main,"ax",@progbits
 	.hidden	test1::main
@@ -54,4 +63,65 @@ test1::main:
 	add rsp, 24
 	.cfi_def_cfa_offset 8
 	ret
+	```
+
+# Размещение на куче
+```rust
+let heap = Box::new(3);
+println!("{}", heap);
+```
+
+## Linux
+```asm
+.section .text.test1::main,"ax",@progbits
+	.hidden	test1::main
+	.globl	test1::main
+	.p2align	4
+.type	test1::main,@function
+test1::main:
+	.cfi_startproc
+	.cfi_personality 155, DW.ref.rust_eh_personality
+	.cfi_lsda 27, .Lexception0
+	push rbx
+	.cfi_def_cfa_offset 16
+	sub rsp, 32
+	.cfi_def_cfa_offset 48
+	.cfi_offset rbx, -16
+	call qword ptr [rip + __rustc::__rust_no_alloc_shim_is_unstable_v2@GOTPCREL]
+	
+	mov edi, 4  ; size, 4 байта для i32
+	mov esi, 4  ; align, выравнивание 4 байта
+	call qword ptr [rip + __rustc::__rust_alloc@GOTPCREL] ; выделяем память в куче
+	test rax, rax ; проверяем, успешно ли выделена память
+	je .LBB4_4  ; если память не выделена, переходим к обработке ошибки
+	mov dword ptr [rax], 3  ; записываем значение 3 в выделенную память
+	mov qword ptr [rsp + 8], rax ; сохраняем указатель на выделенную память в куче на стек
+	lea rax, [rsp + 8]  ; загружаем указатель на 3 в куче из стека в rax
+	mov qword ptr [rsp + 16], rax ; сохраняем указатель в стеке
+	lea rax, [rip + <alloc::boxed::Box<T,A> as core::fmt::Display>::fmt] ; загружаем указатель на функцию fmt в rax для трейта Display для типа Box
+	mov qword ptr [rsp + 24], rax
+	lea rdi, [rip + .Lanon.8093c3e359ed4215fb983c74819fad58.1]
+	lea rsi, [rsp + 16]
+	call qword ptr [rip + std::io::stdio::_print@GOTPCREL] ; печатаем
+	mov rdi, qword ptr [rsp + 8]  ; достаем адрес из кучи
+	mov esi, 4 ; size, 4 байта для i32
+	mov edx, 4 ; align, выравнивание 4 байта
+	call qword ptr [rip + __rustc::__rust_dealloc@GOTPCREL] ; освобождаем память в куче
+	add rsp, 32 ; чистим стек
+	.cfi_def_cfa_offset 16
+	pop rbx
+	.cfi_def_cfa_offset 8
+	ret
+.LBB4_4:
+	.cfi_def_cfa_offset 48
+	mov edi, 4
+	mov esi, 4
+	call qword ptr [rip + alloc::alloc::handle_alloc_error@GOTPCREL]
+	mov rbx, rax
+	mov rdi, qword ptr [rsp + 8]
+	mov esi, 4
+	mov edx, 4
+	call qword ptr [rip + __rustc::__rust_dealloc@GOTPCREL]
+	mov rdi, rbx
+	call _Unwind_Resume@PLT
 	```
