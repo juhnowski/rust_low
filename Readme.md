@@ -34,3 +34,24 @@ test1::main:
 ```
 
 # Linux
+```asm
+.section .text.test1::main,"ax",@progbits
+	.hidden	test1::main
+	.globl	test1::main
+	.p2align	4
+.type	test1::main,@function
+test1::main:
+	.cfi_startproc
+	sub rsp, 24
+	.cfi_def_cfa_offset 32
+	lea rax, [rip + test1::I]
+	mov qword ptr [rsp + 8], rax
+	mov rax, qword ptr [rip + core::fmt::num::imp::<impl core::fmt::Display for i32>::fmt@GOTPCREL]
+	mov qword ptr [rsp + 16], rax
+	lea rdi, [rip + .Lanon.8093c3e359ed4215fb983c74819fad58.1]
+	lea rsi, [rsp + 8]
+	call qword ptr [rip + std::io::stdio::_print@GOTPCREL]
+	add rsp, 24
+	.cfi_def_cfa_offset 8
+	ret
+	```
